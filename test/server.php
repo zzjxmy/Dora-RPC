@@ -1,6 +1,4 @@
 <?php
-include "../src/RpcConst.php";
-include "../src/Packet.php";
 include "../src/RpcServer.php";
 
 class APIServer extends \DWDRPC\RpcServer

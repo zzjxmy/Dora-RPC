@@ -1,6 +1,9 @@
 <?php
 namespace DWDRPC;
 
+include_once __DIR__ . '/Packet.php';
+include_once __DIR__ . '/RpcConst.php';
+
 abstract class RpcServer
 {
 
