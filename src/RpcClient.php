@@ -34,7 +34,7 @@ class RpcClient
 
     //是否使用上一次已连接connectclient
     //用于减少单机长链接数
-    //private $connectReuse = true;
+//    private $connectReuse = true;
 
     //current connect ip port
     private $connectIp = "";
@@ -297,11 +297,6 @@ class RpcClient
     }
 
     /*
-     * mode 参数更改说明，以前版本只是sync参数不是mode
-     * sync :
-     *      true 代表是否阻塞等待结果，
-     *      false 下发任务成功后就返回不等待结果，用于对接口返回没有影响的操作提速
-     * 改版后----
      * mode :
      *      0 代表阻塞等待任务执行完毕拿到结果 ；
      *      1 代表下发任务成功后就返回不等待结果 ；
