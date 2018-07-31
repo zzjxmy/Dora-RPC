@@ -69,7 +69,7 @@ class LogAgent
 
     public static function threadDumpLog()
     {
-        swoole_set_process_name("dora: logdumper");
+//        swoole_set_process_name("dora: logdumper");
 
         //dump the log to the local
         $logcount = 0;

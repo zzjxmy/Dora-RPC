@@ -1,7 +1,7 @@
 <?php
 namespace DoraRPC;
 
-class DoraConst
+class RpcConst
 {
     ///////////
     // 同步、异步不要结果、异步获取结果

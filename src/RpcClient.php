@@ -7,7 +7,7 @@ namespace DoraRPC;
  * by 蓝天 http://weibo.com/thinkpc
  */
 
-class Client
+class RpcClient
 {
 
     //client obj pool
@@ -184,7 +184,7 @@ class Client
                 'socket_buffer_size' => 1024 * 1024 * 4,
             ));
 
-            if (!$client->connect($connectHost, $connectPort, DoraConst::SW_RECIVE_TIMEOUT)) {
+            if (!$client->connect($connectHost, $connectPort, RpcConst::SW_RECIVE_TIMEOUT)) {
                 //connect fail
                 $errorCode = $client->errCode;
                 if ($errorCode == 0) {
@@ -234,12 +234,12 @@ class Client
                     'param' => array(),
                 ),
             ),
-            'type' => DoraConst::SW_CONTROL_CMD,
+            'type' => RpcConst::SW_CONTROL_CMD,
             'guid' => $this->guid,
         );
 
         $sendData = Packet::packEncode($packet);
-        $result = $this->doRequest($sendData, DoraConst::SW_MODE_WAITRESULT_SINGLE);
+        $result = $this->doRequest($sendData, RpcConst::SW_MODE_WAITRESULT_SINGLE);
 
         if ($this->guid != $result["guid"]) {
             return Packet::packFormat($this->guid, "guid wront please retry..", 100100, $result["data"]);
@@ -277,12 +277,12 @@ class Client
                     'param' => array(),
                 ),
             ),
-            'type' => DoraConst::SW_CONTROL_CMD,
+            'type' => RpcConst::SW_CONTROL_CMD,
             'guid' => $this->guid,
         );
 
         $sendData = Packet::packEncode($packet);
-        $result = $this->doRequest($sendData, DoraConst::SW_MODE_WAITRESULT_SINGLE);
+        $result = $this->doRequest($sendData, RpcConst::SW_MODE_WAITRESULT_SINGLE);
 
         if ($this->guid != $result["guid"]) {
             return Packet::packFormat($this->guid, "guid wront please retry..", 100100, $result["data"]);
@@ -318,7 +318,7 @@ class Client
      * @return mixed  返回单个请求结果
      * @throws \Exception unknow mode type
      */
-    public function singleAPI($name, $param, $mode = DoraConst::SW_MODE_WAITRESULT, $retry = 0, $ip = "", $port = "")
+    public function singleAPI($name, $param, $mode = RpcConst::SW_MODE_WAITRESULT, $retry = 0, $ip = "", $port = "")
     {
         //get guid
         $this->guid = $this->generateGuid();
@@ -334,14 +334,14 @@ class Client
         );
 
         switch ($mode) {
-            case DoraConst::SW_MODE_WAITRESULT:
-                $packet["type"] = DoraConst::SW_MODE_WAITRESULT_SINGLE;
+            case RpcConst::SW_MODE_WAITRESULT:
+                $packet["type"] = RpcConst::SW_MODE_WAITRESULT_SINGLE;
                 break;
-            case DoraConst::SW_MODE_NORESULT:
-                $packet["type"] = DoraConst::SW_MODE_NORESULT_SINGLE;
+            case RpcConst::SW_MODE_NORESULT:
+                $packet["type"] = RpcConst::SW_MODE_NORESULT_SINGLE;
                 break;
-            case DoraConst::SW_MODE_ASYNCRESULT:
-                $packet["type"] = DoraConst::SW_MODE_ASYNCRESULT_SINGLE;
+            case RpcConst::SW_MODE_ASYNCRESULT:
+                $packet["type"] = RpcConst::SW_MODE_ASYNCRESULT_SINGLE;
                 break;
             default:
                 throw new \Exception("unknow mode have been set", 100099);
@@ -374,12 +374,10 @@ class Client
      * @param  array $params 提交参数 请指定key好方便区分对应结果，注意考虑到硬件资源有限并发请求不要超过50个
      * @param  int $mode
      * @param  int $retry 通讯错误时重试次数
-     * @param  string $ip 要连得ip地址，如果不指定从现有配置随机个
-     * @param  string $port 要连得port地址，如果不指定从现有配置找一个
      * @return mixed 返回指定key结果
      * @throws \Exception unknow mode type
      */
-    public function multiAPI($params, $mode = DoraConst::SW_MODE_WAITRESULT, $retry = 0, $ip = "", $port = "")
+    public function multiAPI($params, $mode = RpcConst::SW_MODE_WAITRESULT, $retry = 0)
     {
         //get guid
         $this->guid = $this->generateGuid();
@@ -390,14 +388,14 @@ class Client
         );
 
         switch ($mode) {
-            case DoraConst::SW_MODE_WAITRESULT:
-                $packet["type"] = DoraConst::SW_MODE_WAITRESULT_MULTI;
+            case RpcConst::SW_MODE_WAITRESULT:
+                $packet["type"] = RpcConst::SW_MODE_WAITRESULT_MULTI;
                 break;
-            case DoraConst::SW_MODE_NORESULT:
-                $packet["type"] = DoraConst::SW_MODE_NORESULT_MULTI;
+            case RpcConst::SW_MODE_NORESULT:
+                $packet["type"] = RpcConst::SW_MODE_NORESULT_MULTI;
                 break;
-            case DoraConst::SW_MODE_ASYNCRESULT:
-                $packet["type"] = DoraConst::SW_MODE_ASYNCRESULT_MULTI;
+            case RpcConst::SW_MODE_ASYNCRESULT:
+                $packet["type"] = RpcConst::SW_MODE_ASYNCRESULT_MULTI;
                 break;
             default:
                 throw new \Exception("unknow mode have been set", 100099);
@@ -457,7 +455,7 @@ class Client
         }
 
         //if the type is async result will record the guid and client handle
-        if ($type == DoraConst::SW_MODE_ASYNCRESULT_MULTI || $type == DoraConst::SW_MODE_ASYNCRESULT_SINGLE) {
+        if ($type == RpcConst::SW_MODE_ASYNCRESULT_MULTI || $type == RpcConst::SW_MODE_ASYNCRESULT_SINGLE) {
             self::$asynclist[$this->guid] = $client;
         }
 
