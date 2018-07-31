@@ -1,22 +1,22 @@
 <?php
 //This is generaled by client monitor
 return array (
-  'group1' => 
+  'internalapi' => 
   array (
-    '10.0.4.10_9567' => 
+    '10.0.4.10_1103' => 
     array (
       'ip' => '10.0.4.10',
-      'port' => 9567,
-      'updatetime' => '1533022771',
+      'port' => 1103,
+      'updatetime' => '1533023953',
     ),
   ),
-  'group2' => 
+  'marketingcenter' => 
   array (
-    '10.0.4.10_9567' => 
+    '10.0.4.10_1103' => 
     array (
       'ip' => '10.0.4.10',
-      'port' => 9567,
-      'updatetime' => '1533022771',
+      'port' => 1103,
+      'updatetime' => '1533023953',
     ),
   ),
 );

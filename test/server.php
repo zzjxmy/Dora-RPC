@@ -27,7 +27,7 @@ class APIServer extends \DWDRPC\RpcServer
 }
 
 //ok start server
-$server = new APIServer("0.0.0.0", 9567);
+$server = new APIServer("0.0.0.0", 1103);
 
 $server->configure(array(
     'tcp' => array(
@@ -50,7 +50,7 @@ $server->configure(array(
 //when you on product env please prepare more redis to registe service for high available
 $server->discovery(
     array(
-        'group1', 'group2'
+        'internalapi', 'marketingcenter'
     ),
     array(
         array(

@@ -3,18 +3,10 @@ include "../src/RpcConst.php";
 include "../src/Packet.php";
 include "../src/RpcClient.php";
 
-/*
-$config = array(
-    "group1" => array(
-        array("ip" => "127.0.0.1", "port" => 9567),
-        //array("ip"=>"127.0.0.1","port"=>9567), you can set more ,the client will random select one,to increase High availability
-    ),
-);*/
-//or
 $config = include("client.conf.php");
 
 //define the mode
-$mode = array("type" => 1, "group" => "group1");
+$mode = array("type" => 1, "group" => "internalapi");
 
 $maxrequest = 0;
 
@@ -35,11 +27,11 @@ for ($i = 0; $i < 10000; $i++) {
     var_dump("single sync", $ret);
 
     //single call && async
-    $ret = $obj->singleAPI("/module_b/abc" . $i, array("yes" => 21321, "foo" => $i), \DWDRPC\DoraConst::SW_MODE_NORESULT, 1);
+    $ret = $obj->singleAPI("/module_b/abc" . $i, array("yes" => 21321, "foo" => $i), \DWDRPC\RpcConst::SW_MODE_NORESULT, 1);
     var_dump("single async", $ret);
 
     //single call && async
-    $ret = $obj->singleAPI("/module_c/abd" . $i, array("yes" => 233, "foo" => $i), \DWDRPC\DoraConst::SW_MODE_ASYNCRESULT, 1);
+    $ret = $obj->singleAPI("/module_c/abd" . $i, array("yes" => 233, "foo" => $i), \DWDRPC\RpcConst::SW_MODE_ASYNCRESULT, 1);
     var_dump("single async result", $ret);
 
     //---------multi
@@ -57,7 +49,7 @@ for ($i = 0; $i < 10000; $i++) {
         "oak" => array("name" => "/module_d/oakdf" . $i, "param" => array("dsaf" => "32111321")),
         "cd" => array("name" => "/module_e/oakdfff" . $i, "param" => array("codo" => "f11ds")),
     );
-    $ret = $obj->multiAPI($data, \DWDRPC\DoraConst::SW_MODE_NORESULT, 1);
+    $ret = $obj->multiAPI($data, \DWDRPC\RpcConst::SW_MODE_NORESULT, 1);
     var_dump("multi async", $ret);
 
     //multi && async
