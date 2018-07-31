@@ -2,21 +2,15 @@
 include "../src/RpcConst.php";
 include "../src/Packet.php";
 include "../src/RpcClient.php";
+include "../src/AddressMap.php";
 
 define('APPLICATION_PATH', dirname(dirname(__FILE__)));
 
 $config = include("client.conf.php");
 
-//define the mode
-$mode = array("type" => 1, "group" => "internalapi");
-
 $maxrequest = 0;
 
-//new obj
-$obj = new \DWDRPC\RpcClient($config);
-
-//change connect mode
-$obj->changeMode($mode);
+$obj = \DWDRPC\AddressMap::getInstance()->getClient('http://www.internal-api.com');
 
 for ($i = 0; $i < 10000; $i++) {
     //echo $i . PHP_EOL;
