@@ -25,7 +25,6 @@ class RpcMonitor
 
                 //get redis config
                 $redisConfig = $self->_config["redis"];
-
                 //connect all redis
                 foreach ($redisConfig as $redisItem) {
                     //validate redis ip and port

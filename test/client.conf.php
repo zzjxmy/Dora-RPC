@@ -6,8 +6,8 @@ return array (
     '10.0.4.10_1103' => 
     array (
       'ip' => '10.0.4.10',
-      'port' => 1103,
-      'updatetime' => '1533025413',
+      'port' => '1103',
+      'updatetime' => '1533027555',
     ),
   ),
   'marketingcenter' => 
@@ -15,8 +15,8 @@ return array (
     '10.0.4.10_1103' => 
     array (
       'ip' => '10.0.4.10',
-      'port' => 1103,
-      'updatetime' => '1533025413',
+      'port' => '1103',
+      'updatetime' => '1533027555',
     ),
   ),
 );

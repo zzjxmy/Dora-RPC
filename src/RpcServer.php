@@ -79,13 +79,13 @@ abstract class RpcServer
                 // 上报的服务器IP
                 $reportServerIP = $self->getLocalIp();
                 foreach ($report as $config) {
-                    if (trim($config["host"]) && $config["port"] > 0) {
-                        $key = $config["host"] . "_" . $config["port"];
+                    if (trim($config["ip"]) && $config["port"] > 0) {
+                        $key = $config["ip"] . "_" . $config["port"];
                         try {
                             if (!isset($_redisObj[$key])) {
                                 //if not connect
                                 $_redisObj[$key] = new \Redis();
-                                $_redisObj[$key]->connect($config["host"], $config["port"]);
+                                $_redisObj[$key]->connect($config["ip"], $config["port"]);
                                 if(isset($config['isauth']) && $config['isauth']){
                                     $_redisObj[$key]->auth($config['auth']);
                                 }
@@ -100,11 +100,11 @@ abstract class RpcServer
                             )));
                             //set time out
                             $_redisObj[$key]->set("rpc.servertime." . $reportServerIP . "." . $self->serverPort . ".time", time());
-                            echo "Reported Service Discovery:" . $config["host"] . ":" . $config["port"] . PHP_EOL;
+                            echo "Reported Service Discovery:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
 
                         } catch (\Exception $ex) {
                             $_redisObj[$key] = null;
-                            echo "connect to Service Discovery error:" . $config["host"] . ":" . $config["port"] . PHP_EOL;
+                            echo "connect to Service Discovery error:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
                         }
                     }
                     sleep(10);

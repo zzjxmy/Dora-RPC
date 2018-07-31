@@ -30,13 +30,14 @@ $rpcConfig = $config->get('rpc.server');
 $server = new APIServer($rpcConfig['host'], $rpcConfig['port']);
 
 $server->configure($rpcConfig->toArray());
-
+$redisConfig = $config->get('redis.config')->toArray();
+$redisConfig['ip'] = $redisConfig['host'];
 $server->discovery(
     array(
         'internalapi', 'marketingcenter'
     ),
     array(
-        $config->get('redis.config')->toArray(),
+        $redisConfig,
     ));
 
 $server->start();
