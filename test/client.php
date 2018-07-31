@@ -5,7 +5,7 @@ include "../src/RpcClient.php";
 
 define('APPLICATION_PATH', dirname(dirname(__FILE__)));
 
-$config = include("client.conf.php");
+$config = include("/tmp/client.conf.php");
 
 //define the mode
 $mode = array("type" => 1, "group" => "internalapi");
