@@ -8,10 +8,11 @@
 
 namespace DWDRPC;
 
+
 class AddressMap{
     private static $registerAddress;
     private static $_instance;
-    private static $application;
+    private static $config;
     private $clients = [];
 
     const DEFAULT_KEY = 'internalapi';
@@ -28,14 +29,15 @@ class AddressMap{
 
     private static function init(){
         $map = include('../conf/map.php');
-        self::$application = \Yaf\Application::app();
-        if(!self::$application instanceof \Yaf\Application){
+        $application = \Yaf\Application::app();
+        if(!$application instanceof \Yaf\Application){
             $path     = APPLICATION_PATH . "/conf/application.ini";
-            self::$application = new \Yaf\Application($path);
+            $application = new \Yaf\Application($path);
         }
-        $config = self::$application->getConfig();
+        $configObj = $application->getConfig();
+        self::$config = $configObj->toArray();
         foreach ($map as $key => $value){
-            self::$registerAddress[md5($config->get($value))] = $key;
+            self::$registerAddress[md5($configObj->get($value))] = $key;
         }
     }
 
@@ -59,7 +61,7 @@ class AddressMap{
     public function getClient($url){
         $group = $this->getKeyByUrl($url);
         if(!isset($this->clients[$group])){
-            $config = include(self::$application->getConfig()->get('rpc.server.config_path'));
+            $config = self::$config['rpc']['server']['config_path'];
             //define the mode
             $mode = array("type" => 1, "group" => $group);
             //new obj
