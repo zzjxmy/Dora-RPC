@@ -27,6 +27,6 @@ $config = array(
 );
 
 //ok start server
-$monitor = new \DWDRPC\RpcMonitor("0.0.0.0", 9569, $config);
+$monitor = new \DWDRPC\RpcMonitor("0.0.0.0", 2103, $config);
 
 $monitor->start();

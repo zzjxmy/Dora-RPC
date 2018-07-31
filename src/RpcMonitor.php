@@ -6,7 +6,7 @@ class RpcMonitor
     protected $_server = null;
 
     protected $_ip = "0.0.0.0";
-    protected $_port = 9569;
+    protected $_port = 2103;
 
     protected $_config;
 
@@ -94,7 +94,7 @@ class RpcMonitor
         }));
     }
 
-    public function __construct($ip = "0.0.0.0", $port = 9569, $config = array())
+    public function __construct($ip = "0.0.0.0", $port = 2103, $config = array())
     {
         //record ip:port
         $this->_ip = $ip;
@@ -126,7 +126,7 @@ class RpcMonitor
             'backlog' => 2000,
             'log_file' => '/tmp/sw_monitor.log',
             'task_tmpdir' => '/tmp/swmonitor/',
-            'daemonize' => 0,//product env is 1
+            'daemonize' => 0,
         ));
 
         //register the event
