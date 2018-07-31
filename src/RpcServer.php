@@ -1,11 +1,6 @@
 <?php
 namespace DWDRPC;
 
-/**
- * Class Server
- * https://github.com/xcl3721/Dora-RPC
- * by 蓝天 http://weibo.com/thinkpc
- */
 abstract class RpcServer
 {
 
@@ -17,31 +12,22 @@ abstract class RpcServer
 
     private $monitorProcess = null;
 
-    private $table = null;
-
     protected $tcpConfig = array(
+        'reactor_num' => 4,
+        'worker_num' => 4,
+        'task_worker_num' => 4,
+        'task_max_request' => 100000,
+        'daemonize' => false,
         'open_length_check' => 1,
         'package_length_type' => 'N',
         'package_length_offset' => 0,
         'package_body_offset' => 4,
-
         'package_max_length' => 2097152, // 1024 * 1024 * 2,
         'buffer_output_size' => 3145728, //1024 * 1024 * 3,
         'pipe_buffer_size' => 33554432, // 1024 * 1024 * 32,
-
         'open_tcp_nodelay' => 1,
-
         'backlog' => 3000,
-    );
-
-    protected $doraConfig = array(
-        //自定义配置
-        'pid_path' => '/tmp/',//dora 自定义变量，用来保存pid文件
-        'master_pid' => 'doramaster.pid', //dora master pid 保存文件
-        'manager_pid' => 'doramanager.pid',//manager pid 保存文件
-        'log_level' => RpcConst::LOG_TYPE_INFO,//设置默认日志等级
-        'log_dump_type' => 'file',//file|logserver
-        'log_path' => '/tmp/bizlog/', //业务日志 dump path
+        'log_file' => '/tmp/rpc_server.log',
     );
 
     abstract public function initServer($server);
@@ -75,13 +61,8 @@ abstract class RpcServer
      */
     public function configure(array $config)
     {
-        if (isset($config['tcp'])) {
-            $this->tcpConfig = array_merge($this->tcpConfig, $config['tcp']);
-        }
+        $this->tcpConfig = array_merge($this->tcpConfig, $config);
 
-        if (isset($config['dora'])) {
-            $this->doraConfig = array_merge($this->doraConfig, $config['dora']);
-        }
         return $this;
     }
 
@@ -97,40 +78,38 @@ abstract class RpcServer
             while (true) {
                 // 上报的服务器IP
                 $reportServerIP = $self->getLocalIp();
-
-                foreach ($report as $discovery) {
-                    foreach ($discovery as $config) {
-                        if (trim($config["ip"]) && $config["port"] > 0) {
-                            $key = $config["ip"] . "_" . $config["port"];
-                            try {
-                                if (!isset($_redisObj[$key])) {
-                                    //if not connect
-                                    $_redisObj[$key] = new \Redis();
-                                    $_redisObj[$key]->connect($config["ip"], $config["port"]);
+                foreach ($report as $config) {
+                    if (trim($config["host"]) && $config["port"] > 0) {
+                        $key = $config["host"] . "_" . $config["port"];
+                        try {
+                            if (!isset($_redisObj[$key])) {
+                                //if not connect
+                                $_redisObj[$key] = new \Redis();
+                                $_redisObj[$key]->connect($config["host"], $config["port"]);
+                                if(isset($config['isauth']) && $config['isauth']){
+                                    $_redisObj[$key]->auth($config['auth']);
                                 }
-                                //register this server
-                                $_redisObj[$key]->sadd("dora.serverlist", json_encode(array(
-                                    "node" => array(
-                                        "ip" => $reportServerIP,
-                                        "port" => $self->serverPort
-                                    ),
-                                    "group" => $group,
-                                )));
-                                //set time out
-                                $_redisObj[$key]->set("dora.servertime." . $reportServerIP . "." . $self->serverPort . ".time", time());
-                                echo "Reported Service Discovery:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
-
-                            } catch (\Exception $ex) {
-                                $_redisObj[$key] = null;
-                                echo "connect to Service Discovery error:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
                             }
-                        }
+                            //register this server
+                            $_redisObj[$key]->sadd("rpc.serverlist", json_encode(array(
+                                "node" => array(
+                                    "ip" => $reportServerIP,
+                                    "port" => $self->serverPort
+                                ),
+                                "group" => $group,
+                            )));
+                            //set time out
+                            $_redisObj[$key]->set("rpc.servertime." . $reportServerIP . "." . $self->serverPort . ".time", time());
+                            echo "Reported Service Discovery:" . $config["host"] . ":" . $config["port"] . PHP_EOL;
 
-                        sleep(10);
-                        //sleep 10 sec and report again
-                    }// config foreach
-                }//discover foreach
-            }
+                        } catch (\Exception $ex) {
+                            $_redisObj[$key] = null;
+                            echo "connect to Service Discovery error:" . $config["host"] . ":" . $config["port"] . PHP_EOL;
+                        }
+                    }
+                    sleep(10);
+                }
+                }
         });
         $this->tcpserver->addProcess($this->monitorProcess);
 
@@ -145,20 +124,6 @@ abstract class RpcServer
     {
         //config the server config
         $this->tcpserver->set($this->tcpConfig);
-
-        $this->table = new \swoole_table(1024);
-        $this->table->column('value', \swoole_table::TYPE_STRING, 64);
-        $this->table->create();
-
-        //log agent init first
-        LogAgent::init($this->doraConfig["log_path"], $this->table);
-        LogAgent::setLogLevel($this->doraConfig["log_level"]);
-
-        $this->tcpserver->addProcess(new \swoole_process(function () {
-            LogAgent::threadDumpLog();
-        }));
-
-
         $this->tcpserver->start();
     }
 
@@ -169,16 +134,12 @@ abstract class RpcServer
         echo "MasterPid={$serv->master_pid}\n";
         echo "ManagerPid={$serv->manager_pid}\n";
         echo "Server: start.Swoole version is [" . SWOOLE_VERSION . "]\n";
-
-        file_put_contents($this->doraConfig["pid_path"] . "/" . $this->doraConfig["master_pid"], $serv->master_pid);
-        file_put_contents($this->doraConfig["pid_path"] . "/" . $this->doraConfig["manager_pid"], $serv->manager_pid);
-
     }
 
     //application server first start
     final public function onManagerStart(\swoole_server $serv)
     {
-//        swoole_set_process_name("dora: manager");
+//        swoole_set_process_name("manager");
     }
 
     final public function onManagerStop(\swoole_server $serv)
@@ -193,10 +154,10 @@ abstract class RpcServer
         $istask = $server->taskworker;
         if (!$istask) {
             //worker
-//            swoole_set_process_name("dora: worker {$worker_id}");
+//            swoole_set_process_name("worker {$worker_id}");
         } else {
             //task
-//            swoole_set_process_name("dora: task {$worker_id}");
+//            swoole_set_process_name("task {$worker_id}");
             $this->initTask($server, $worker_id);
         }
 
@@ -368,7 +329,6 @@ abstract class RpcServer
     {
         //using the swoole error log output the error this will output to the swtmp log
         var_dump("workererror", array($this->taskInfo, $serv, $worker_id, $worker_pid, $exit_code));
-        LogAgent::recordLog(RpcConst::LOG_TYPE_ERROR, "worker_error", __FILE__, __LINE__, array($this->taskInfo, $serv, $worker_id, $worker_pid, $exit_code));
     }
 
     /**

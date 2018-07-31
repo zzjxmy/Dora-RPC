@@ -40,14 +40,14 @@ class RpcMonitor
                             }
 
                             //get register node server
-                            $serverList = $_redisObj[$key]->smembers("dora.serverlist");
+                            $serverList = $_redisObj[$key]->smembers("rpc.serverlist");
                             if ($serverList) {
                                 foreach ($serverList as $sitem) {
                                     $info = json_decode($sitem, true);
                                     //decode success
                                     if ($info) {
                                         //get last report time
-                                        $lastTimeKey = "dora.servertime." . $info["node"]["ip"] . "." . $info["node"]["port"] . ".time";
+                                        $lastTimeKey = "rpc.servertime." . $info["node"]["ip"] . "." . $info["node"]["port"] . ".time";
                                         $lastUpdatTime = $_redisObj[$key]->get($lastTimeKey);
 
                                         //timeout ignore
@@ -115,14 +115,11 @@ class RpcMonitor
             'open_tcp_nodelay' => 1,
             'heartbeat_check_interval' => 5,
             'heartbeat_idle_time' => 10,
-
             'reactor_num' => 1,
             'worker_num' => 2,
             'task_worker_num' => 0,
-
-            'max_request' => 0, //必须设置为0否则并发任务容易丢,don't change this number
+            'max_request' => 0,
             'task_max_request' => 4000,
-
             'backlog' => 2000,
             'log_file' => '/tmp/sw_monitor.log',
             'task_tmpdir' => '/tmp/swmonitor/',
@@ -138,10 +135,7 @@ class RpcMonitor
         $this->_config["redis"] = $config["discovery"];
 
         //store the avaliable node list to this config file
-        $this->_config["export_path"] = $config["config"];
-
-        //log monitor path
-        $this->_config["log_path"] = $config["log"];
+        $this->_config["export_path"] = $config["configPath"];
 
         $this->discovery($this->_config["redis"]);
     }
