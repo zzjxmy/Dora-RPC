@@ -1,5 +1,5 @@
 <?php
-namespace DoraRPC;
+namespace DWDRPC;
 
 /**
  * Class Server

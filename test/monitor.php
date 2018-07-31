@@ -1,13 +1,9 @@
 <?php
-include "../src/DoraConst.php";
+include "../src/RpcConst.php";
 include "../src/Packet.php";
-include "../src/Monitor.php";
+include "../src/RpcMonitor.php";
 
 $config = array(
-    //redis for service discovery register
-    //when you on product env please prepare more redis to registe service for high available
-    //此功能用于服务发现的客户端，这个进程会定期从指定的redis内获取所有可用app服务的列表，并定期更新可用组的服务器列表
-    //会自动剔除超过一定时间没有上报状态的服务器，后期这个服务将会增加分布式日志收集服务
     "discovery" => array(
         //first reporter
         array(
@@ -31,6 +27,6 @@ $config = array(
 );
 
 //ok start server
-$monitor = new \DoraRPC\Monitor("0.0.0.0", 9569, $config);
+$monitor = new \DWDRPC\RpcMonitor("0.0.0.0", 9569, $config);
 
 $monitor->start();

@@ -1,7 +1,7 @@
 <?php
-namespace DoraRPC;
+namespace DWDRPC;
 
-class Monitor
+class RpcMonitor
 {
     protected $_server = null;
 

@@ -1,10 +1,10 @@
 <?php
-include "../src/DoraConst.php";
+include "../src/RpcConst.php";
 include "../src/Packet.php";
-include "../src/BackEndServer.php";
+include "../src/RpcServer.php";
 include "../src/LogAgent.php";
 
-class APIServer extends \DoraRPC\RpcServer
+class APIServer extends \DWDRPC\RpcServer
 {
 
     function initServer($server)
@@ -16,9 +16,7 @@ class APIServer extends \DoraRPC\RpcServer
     function doWork($param)
     {
         //process you logical 业务实际处理代码仍这里
-        //return the result 使用return返回处理结果
-        //throw new Exception("asbddddfds",1231);
-        \DoraRPC\LogAgent::recordLog(\DoraRPC\RpcConst::LOG_TYPE_INFO, "dowork", __FILE__, __LINE__, array("esfs"));
+        \DWDRPC\LogAgent::recordLog(\DWDRPC\RpcConst::LOG_TYPE_INFO, "dowork", __FILE__, __LINE__, array("esfs"));
         return array("hehe" => "ohyes123");
     }
 
