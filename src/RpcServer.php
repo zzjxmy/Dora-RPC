@@ -103,11 +103,11 @@ abstract class RpcServer
                             )));
                             //set time out
                             $_redisObj[$key]->set("rpc.servertime." . $reportServerIP . "." . $self->serverPort . ".time", time());
-                            echo "Reported Service Discovery:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
+                            echo "【". date('Y-m-d H:i:s') ."】Reported Service Discovery:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
 
                         } catch (\Exception $ex) {
                             $_redisObj[$key] = null;
-                            echo "connect to Service Discovery error:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
+                            echo "【". date('Y-m-d H:i:s') ."】connect to Service Discovery error:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
                         }
                     }
                     sleep(10);

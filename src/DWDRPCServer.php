@@ -6,6 +6,10 @@
  * Time: 上午9:43
  */
 
+namespace DWDRPC;
+
+include_once __DIR__ .'/RpcServer.php';
+
 class DWDRPCServer extends \DWDRPC\RpcServer
 {
     private $yaf;

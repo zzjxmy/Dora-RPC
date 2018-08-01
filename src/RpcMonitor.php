@@ -79,12 +79,12 @@ class RpcMonitor
                     $configString = var_export($serverListResult, true);
                     $ret = file_put_contents($this->_config["export_path"], "<?php" . PHP_EOL . "//This is generaled by client monitor" . PHP_EOL . "return " . $configString . ";");
                     if (!$ret) {
-                        echo "Error save the config to file..." . PHP_EOL;
+                        echo "【". date('Y-m-d H:i:s') ."】Error save the config to file..." . PHP_EOL;
                     } else {
-                        echo "General config file to:" . $this->_config["export_path"] . PHP_EOL;
+                        echo "【". date('Y-m-d H:i:s') ."】General config file to:" . $this->_config["export_path"] . PHP_EOL;
                     }
                 } else {
-                    echo "Error there is no Config get..." . PHP_EOL;
+                    echo "【". date('Y-m-d H:i:s') ."】Error there is no Config get..." . PHP_EOL;
                 }
 
                 //sleep 10 sec
