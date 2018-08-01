@@ -171,7 +171,7 @@ class RpcClient
                 break;
         }
 
-        if (!isset(self::$client[$clientKey])) {
+        if (!isset(self::$client[$clientKey]) || !self::$client[$clientKey]->isConnected()) {
             $client = new \swoole_client(SWOOLE_SOCK_TCP | SWOOLE_KEEP);
             $client->set(array(
                 'open_length_check' => 1,

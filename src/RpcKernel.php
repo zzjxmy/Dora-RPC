@@ -8,7 +8,7 @@
 
 namespace DWDRPC;
 
-include_once __DIR__ . 'RpcConst.php';
+include_once __DIR__ . '/RpcConst.php';
 
 class RpcKernel{
     private static $registerAddress;
@@ -62,14 +62,40 @@ class RpcKernel{
     public function getClient($url){
         $group = $this->getKeyByUrl($url);
         if(!isset($this->clients[$group])){
-            $config = self::$config['rpc']['server']['config_path'];
+            if(isset(self::$config['rpc']['server']['config_path'])){
+                $configPath = self::$config['rpc']['server']['config_path'];
+            }else{
+                $configPath = APPLICATION_PATH . '/conf/client.conf.php';
+            }
+            $config = include($configPath);
             $mode = array("type" => RpcConst::MODEL_DEFAULT, "group" => $group);
-            $obj = new \DWDRPC\RpcClient($config);
+            $obj = new \DWDRPC\RpcClient($this->getConfig());
             $obj->changeMode($mode);
             $this->clients[$group] = $obj;
         }
 
         return $this->clients[$group];
+    }
+
+    public function getClientByKey($key){
+        if(!isset($this->clients[$key])){
+            $mode = array("type" => RpcConst::MODEL_DEFAULT, "group" => $key);
+            $obj = new \DWDRPC\RpcClient($this->getConfig());
+            $obj->changeMode($mode);
+            $this->clients[$key] = $obj;
+        }
+
+        return $this->clients[$key];
+    }
+
+    public function getConfig(){
+        if(isset(self::$config['rpc']['server']['config_path'])){
+            $configPath = self::$config['rpc']['server']['config_path'];
+        }else{
+            $configPath = APPLICATION_PATH . '/conf/client.conf.php';
+        }
+        $config = include($configPath);
+        return $config;
     }
 
 }

@@ -22,7 +22,7 @@ class DWDRPCServer extends \DWDRPC\RpcServer
     {
         $_GET = isset($param['api']['param']['RPC_GET'])?$param['api']['param']['RPC_GET']:[];
         $_POST = isset($param['api']['param']['RPC_POST'])?$param['api']['param']['RPC_POST']:[];
-        $_SERVER = isset($param['api']['param']['RPC_HEADER'])?$param['api']['param']['RPC_HEADER']:[];
+        $_SERVER = isset($param['api']['param']['RPC_SERVER'])?$param['api']['param']['RPC_SERVER']:[];
         \HttpServer::getInstance()->init();
         try{
             $request = new \Yaf\Request\Http($param['api']['name']);
