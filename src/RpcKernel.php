@@ -8,8 +8,9 @@
 
 namespace DWDRPC;
 
+include_once __DIR__ . 'RpcConst.php';
 
-class AddressMap{
+class RpcKernel{
     private static $registerAddress;
     private static $_instance;
     private static $config;
@@ -28,7 +29,7 @@ class AddressMap{
     }
 
     private static function init(){
-        $map = include('../conf/map.php');
+        $map = include(dirname(__DIR__) . '/conf/map.php');
         $application = \Yaf\Application::app();
         if(!$application instanceof \Yaf\Application){
             $path     = APPLICATION_PATH . "/conf/application.ini";
@@ -62,11 +63,8 @@ class AddressMap{
         $group = $this->getKeyByUrl($url);
         if(!isset($this->clients[$group])){
             $config = self::$config['rpc']['server']['config_path'];
-            //define the mode
-            $mode = array("type" => 1, "group" => $group);
-            //new obj
+            $mode = array("type" => RpcConst::MODEL_DEFAULT, "group" => $group);
             $obj = new \DWDRPC\RpcClient($config);
-            //change connect mode
             $obj->changeMode($mode);
             $this->clients[$group] = $obj;
         }

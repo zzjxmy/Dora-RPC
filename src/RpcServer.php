@@ -133,7 +133,6 @@ abstract class RpcServer
     //application server first start
     final public function onStart(\swoole_server $serv)
     {
-//        swoole_set_process_name("dora: master");
         echo "MasterPid={$serv->master_pid}\n";
         echo "ManagerPid={$serv->manager_pid}\n";
         echo "Server: start.Swoole version is [" . SWOOLE_VERSION . "]\n";
@@ -142,13 +141,10 @@ abstract class RpcServer
     //application server first start
     final public function onManagerStart(\swoole_server $serv)
     {
-//        swoole_set_process_name("manager");
     }
 
     final public function onManagerStop(\swoole_server $serv)
     {
-        //echo "Manager Stop , shutdown server\n";
-        //$serv->shutdown();
     }
 
     //worker and task init
@@ -156,11 +152,7 @@ abstract class RpcServer
     {
         $istask = $server->taskworker;
         if (!$istask) {
-            //worker
-//            swoole_set_process_name("worker {$worker_id}");
         } else {
-            //task
-//            swoole_set_process_name("task {$worker_id}");
             $this->initTask($server, $worker_id);
         }
 
@@ -172,7 +164,6 @@ abstract class RpcServer
     final public function onReceive(\swoole_server $serv, $fd, $from_id, $data)
     {
         $requestInfo = Packet::packDecode($data);
-
         #decode error
         if ($requestInfo["code"] != 0) {
             $req = Packet::packEncode($requestInfo);
@@ -195,10 +186,9 @@ abstract class RpcServer
 
         //prepare the task parameter
         $task = array(
-            "type" => $requestInfo["type"],
             "guid" => $requestInfo["guid"],
+            "type" => $requestInfo["type"],
             "fd" => $fd,
-            "protocol" => "tcp",
         );
 
         //different task type process
@@ -218,7 +208,7 @@ abstract class RpcServer
                 $serv->task($task);
 
                 //return success deploy
-                $pack = Packet::packFormat($guid, "transfer success.已经成功投递", 100001);
+                $pack = Packet::packFormat($guid, "成功投递", 100001);
                 $pack = Packet::packEncode($pack);
                 $serv->send($fd, $pack);
 
@@ -241,7 +231,7 @@ abstract class RpcServer
                     $serv->task($task);
                 }
 
-                $pack = Packet::packFormat($guid, "transfer success.已经成功投递", 100001);
+                $pack = Packet::packFormat($guid, "成功投递", 100001);
                 $pack["guid"] = $task["guid"];
                 $pack = Packet::packEncode($pack);
 
@@ -282,7 +272,7 @@ abstract class RpcServer
                 $this->taskInfo[$fd][$guid]["taskkey"][$taskid] = "one";
 
                 //return success
-                $pack = Packet::packFormat($guid, "transfer success.已经成功投递", 100001);
+                $pack = Packet::packFormat($guid, "成功投递", 100001);
                 $pack = Packet::packEncode($pack);
                 $serv->send($fd, $pack);
 
@@ -296,18 +286,15 @@ abstract class RpcServer
                 }
 
                 //return success
-                $pack = Packet::packFormat($guid, "transfer success.已经成功投递", 100001);
+                $pack = Packet::packFormat($guid, "成功投递", 100001);
                 $pack = Packet::packEncode($pack);
 
                 $serv->send($fd, $pack);
                 break;
             default:
-                $pack = Packet::packFormat($guid, "unknow task type.未知类型任务", 100002);
+                $pack = Packet::packFormat($guid, "未知类型任务", 100002);
                 $pack = Packet::packEncode($pack);
-
                 $serv->send($fd, $pack);
-                //unset($this->taskInfo[$fd]);
-
                 return true;
         }
 
@@ -316,16 +303,32 @@ abstract class RpcServer
 
     final public function onTask($serv, $task_id, $from_id, $data)
     {
+        register_shutdown_function([$this, 'handleFatal'], $serv, $data['fd']);
         try {
-            $data["result"] = Packet::packFormat($data["guid"], "OK", 0, $this->doWork($data));
+            $data["result"] = $this->doWork($serv,$data);
         } catch (\Exception $e) {
-            $data["result"] = Packet::packFormat($data["guid"], $e->getMessage(), $e->getCode());
+            $data["result"] = $e->getMessage();
         }
 
         return $data;
     }
 
-    abstract public function doWork($param);
+     public function handleFatal($server, $fd){
+        $error = error_get_last();
+        if($server->exist($fd)){
+            $data["result"] = $error['message'];
+            $packet = Packet::packEncode($packet);
+            $server->send($fd, $packet);
+        }
+        posix_kill(getmypid(), SIGINT);
+    }
+
+    /**
+     * @param $server
+     * @param $param $fd $requestData
+     * @return mixed
+     */
+    abstract public function doWork($server,$param);
 
 
     final public function onWorkerError(\swoole_server $serv, $worker_id, $worker_pid, $exit_code)
@@ -367,7 +370,6 @@ abstract class RpcServer
         $fd = $data["fd"];
         $guid = $data["guid"];
 
-        //if the guid not exists .it's mean the api no need return result
         if (!isset($this->taskInfo[$fd][$guid])) {
             return true;
         }
@@ -385,7 +387,7 @@ abstract class RpcServer
 
             case RpcConst::SW_MODE_WAITRESULT_SINGLE:
                 $packet = Packet::packFormat($guid, "OK", 0, $data["result"]);
-                $packet = Packet::packEncode($packet, $data["protocol"]);
+                $packet = Packet::packEncode($packet);
                 $serv->send($fd, $packet);
                 unset($this->taskInfo[$fd][$guid]);
 
@@ -395,16 +397,13 @@ abstract class RpcServer
             case RpcConst::SW_MODE_WAITRESULT_MULTI:
                 if (count($this->taskInfo[$fd][$guid]["taskkey"]) == 0) {
                     $packet = Packet::packFormat($guid, "OK", 0, $this->taskInfo[$fd][$guid]["result"]);
-                    $packet = Packet::packEncode($packet, $data["protocol"]);
+                    $packet = Packet::packEncode($packet);
                     $serv->send($fd, $packet);
-                    //$serv->close($fd);
                     unset($this->taskInfo[$fd][$guid]);
 
                     return true;
                 } else {
-                    //multi call task
-                    //not finished
-                    //waiting other result
+                    //异步不需要结果
                     return true;
                 }
                 break;
@@ -413,7 +412,7 @@ abstract class RpcServer
                 $packet = Packet::packFormat($guid, "OK", 0, $data["result"]);
                 //flag this is result
                 $packet["isresult"] = 1;
-                $packet = Packet::packEncode($packet, $data["protocol"]);
+                $packet = Packet::packEncode($packet);
 
                 //sys_get_temp_dir
                 $serv->send($fd, $packet);
@@ -425,16 +424,13 @@ abstract class RpcServer
                 if (count($this->taskInfo[$fd][$guid]["taskkey"]) == 0) {
                     $packet = Packet::packFormat($guid, "OK", 0, $this->taskInfo[$fd][$guid]["result"]);
                     $packet["isresult"] = 1;
-                    $packet = Packet::packEncode($packet, $data["protocol"]);
+                    $packet = Packet::packEncode($packet);
                     $serv->send($fd, $packet);
 
                     unset($this->taskInfo[$fd][$guid]);
 
                     return true;
                 } else {
-                    //multi call task
-                    //not finished
-                    //waiting other result
                     return true;
                 }
                 break;

@@ -10,7 +10,7 @@ $config = include("client.conf.php");
 
 $maxrequest = 0;
 
-$obj = \DWDRPC\AddressMap::getInstance()->getClient('http://www.internal-api.com');
+$obj = \DWDRPC\RpcKernel::getInstance()->getClient('http://www.internal-api.com');
 
 for ($i = 0; $i < 10000; $i++) {
     //echo $i . PHP_EOL;

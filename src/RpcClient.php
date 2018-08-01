@@ -1,6 +1,8 @@
 <?php
 namespace DWDRPC;
 
+include __DIR__. '/Packet.php';
+
 /**
  * Class Client
  * https://github.com/xcl3721/Dora-RPC
@@ -28,22 +30,15 @@ class RpcClient
     //this request guid
     private $guid;
 
-    //1 random from specify group,2 specify by ip port
     //1 随机从指定group名称内选择客户端，2 指定ip进行连接
     private $connectMode = 0;
-
-    //是否使用上一次已连接connectclient
-    //用于减少单机长链接数
-//    private $connectReuse = true;
 
     //current connect ip port
     private $connectIp = "";
     private $connectPort = 0;
 
-    //config group name
     private $connectGroup = "";
 
-    //current using client obj key on static client array
     private $currentClientKey = "";
 
     public function __construct($serverConfig)
@@ -55,9 +50,6 @@ class RpcClient
         $this->serverConfig = $serverConfig;
     }
 
-    //$param = array("type"=>1,"group"=>"group1");
-    //$param = array("type"=>2,"ip"=>"127.0.0.1","port"=>9567);
-
     /**
      * 更换连接模式，用于指定ip请求和普通请求切换
      * @param $param
@@ -66,21 +58,21 @@ class RpcClient
     public function changeMode($param)
     {
         switch ($param["type"]) {
-            case 1:
+            case RpcConst::MODEL_DEFAULT:
                 if ($param["group"] == "") {
                     throw new \Exception("change mode parameter is wrong", -1);
                 }
-                $this->connectMode = 1;
+                $this->connectMode = RpcConst::MODEL_DEFAULT;
                 $this->connectGroup = $param["group"];
                 $this->connectIp = "";
                 $this->connectPort = "";
                 $this->currentClientKey = "";
                 break;
-            case 2:
+            case RpcConst::MODEL_APPOINT:
                 if ($param["ip"] == "" || $param["port"] == "") {
                     throw new \Exception("change mode parameter is wrong", -1);
                 }
-                $this->connectMode = 2;
+                $this->connectMode = RpcConst::MODEL_APPOINT;
                 $this->connectGroup = "default";
                 $this->connectIp = $param["ip"];
                 $this->connectPort = $param["port"];
@@ -100,11 +92,21 @@ class RpcClient
     public function getConnectMode()
     {
         switch ($this->connectMode) {
-            case 1:
-                return array("type" => 1, "group" => $this->connectGroup, "ip" => $this->connectIp, "port" => $this->connectPort);
+            case RpcConst::MODEL_DEFAULT:
+                return array(
+                    "type" => RpcConst::MODEL_DEFAULT,
+                    "group" => $this->connectGroup,
+                    "ip" => $this->connectIp,
+                    "port" => $this->connectPort
+                );
                 break;
-            case 2:
-                return array("type" => 2, "group" => "", "ip" => $this->connectIp, "port" => $this->connectPort);
+            case RpcConst::MODEL_APPOINT:
+                return array(
+                    "type" => RpcConst::MODEL_APPOINT,
+                    "group" => "",
+                    "ip" => $this->connectIp,
+                    "port" => $this->connectPort
+                );
                 break;
             default:
                 throw new \Exception("current connect mode is unknow", -1);
@@ -127,12 +129,9 @@ class RpcClient
             $this->serverConfigBlock[$this->connectGroup] = array();
         }
 
-        //if not specified the ip and port random get one
         do {
-            //get one config by random
             $key = array_rand($this->serverConfig[$this->connectGroup]);
 
-            //if not on the block list.
             if (!isset($this->serverConfigBlock[$this->connectGroup][$key])) {
                 return $key;
             }
@@ -151,7 +150,7 @@ class RpcClient
 
         //if not spc will random
         switch ($this->connectMode) {
-            case 1:
+            case RpcConst::MODEL_DEFAULT:
                 $key = $this->getConfigObjKey();
                 $clientKey = $this->serverConfig[$this->connectGroup][$key]["ip"] . "_" . $this->serverConfig[$this->connectGroup][$key]["port"];
                 //set the current client key
@@ -159,7 +158,7 @@ class RpcClient
                 $connectHost = $this->serverConfig[$this->connectGroup][$key]["ip"];
                 $connectPort = $this->serverConfig[$this->connectGroup][$key]["port"];
                 break;
-            case 2:
+            case RpcConst::MODEL_APPOINT:
                 //using spec
                 $clientKey = trim($this->connectIp) . "_" . trim($this->connectPort);
                 //set the current client key
@@ -207,93 +206,6 @@ class RpcClient
 
         //success
         return self::$client[$clientKey];
-    }
-
-    /**
-     * 获取应用服务器信息 get the backend service stat
-     * @param string $ip
-     * @param string $port
-     * @return array
-     */
-
-    public function getStat($ip = "", $port = "")
-    {
-        $beformode = $this->getConnectMode();
-
-        if ($ip != "" && $port != "") {
-            $mode = array("type" => 2, "ip" => $ip, "port" => $port);
-            $this->changeMode($mode);
-        }
-
-        $this->guid = $this->generateGuid();
-
-        $packet = array(
-            'api' => array(
-                "cmd" => array(
-                    'name' => "getStat",
-                    'param' => array(),
-                ),
-            ),
-            'type' => RpcConst::SW_CONTROL_CMD,
-            'guid' => $this->guid,
-        );
-
-        $sendData = Packet::packEncode($packet);
-        $result = $this->doRequest($sendData, RpcConst::SW_MODE_WAITRESULT_SINGLE);
-
-        if ($this->guid != $result["guid"]) {
-            return Packet::packFormat($this->guid, "guid wront please retry..", 100100, $result["data"]);
-        }
-
-        //revert befor connect mode
-        if ($ip != "" && $port != "") {
-            //revert befor mode
-            $this->changeMode($beformode);
-        }
-        return $result["data"];
-    }
-
-    /**
-     * reload 指定服务器的代码
-     * @param string $ip
-     * @param string $port
-     * @return array
-     */
-    public function reloadServerTask($ip = "", $port = "")
-    {
-        $beformode = $this->getConnectMode();
-
-        if ($ip != "" && $port != "") {
-            $mode = array("type" => 2, "ip" => $ip, "port" => $port);
-            $this->changeMode($mode);
-        }
-
-        $this->guid = $this->generateGuid();
-
-        $packet = array(
-            'api' => array(
-                "cmd" => array(
-                    'name' => "reloadTask",
-                    'param' => array(),
-                ),
-            ),
-            'type' => RpcConst::SW_CONTROL_CMD,
-            'guid' => $this->guid,
-        );
-
-        $sendData = Packet::packEncode($packet);
-        $result = $this->doRequest($sendData, RpcConst::SW_MODE_WAITRESULT_SINGLE);
-
-        if ($this->guid != $result["guid"]) {
-            return Packet::packFormat($this->guid, "guid wront please retry..", 100100, $result["data"]);
-        }
-
-        //revert befor connect mode
-        if ($ip != "" && $port != "") {
-            //revert befor mode
-            $this->changeMode($beformode);
-        }
-        return $result["data"];
     }
 
     /*
@@ -465,19 +377,12 @@ class RpcClient
     //return the right guid request
     private function waitResult($client)
     {
-        while (1) {
+        while (true) {
             $result = $client->recv();
 
             if ($result !== false && $result != "") {
                 $data = Packet::packDecode($result);
-                //if the async result first deploy success will
                 if ($data["data"]["guid"] != $this->guid) {
-
-                    // this data was not we want
-                    //it's may the async result
-                    //when the guid on the asynclist and have isresult =1  on data is async result
-                    //when the guid on the asynclist not have isresult field ond data is first success deploy msg
-
                     if (isset(self::$asynclist[$data["data"]["guid"]]) && isset($data["data"]["isresult"]) && $data["data"]["isresult"] == 1) {
 
                         //ok recive an async result
@@ -493,7 +398,7 @@ class RpcClient
                     }
                 } else {
                     //founded right data
-                    return $data;
+                    return $data['data'];
                 }
             } else {
                 //time out
@@ -507,9 +412,7 @@ class RpcClient
     {
         //wait all the async result
         //when  timeout all the error will return
-        //这里有个坑，我不知道具体哪个client需要recive
-        while (1) {
-
+        while (true) {
             if (count(self::$asynclist) > 0) {
                 foreach (self::$asynclist as $k => $client) {
                     if ($client->isConnected()) {
@@ -523,12 +426,10 @@ class RpcClient
                                 //remove the guid on the asynclist
                                 unset(self::$asynclist[$data["data"]["guid"]]);
 
-                                //add result to async result
                                 self::$asynresult[$data["data"]["guid"]] = $data["data"];
                                 self::$asynresult[$data["data"]["guid"]]["fromwait"] = 0;
                                 continue;
                             } else {
-                                //not in the asynclist drop this packet
                                 continue;
                             }
                         } else {
@@ -551,7 +452,7 @@ class RpcClient
 
         $result = self::$asynresult;
         self::$asynresult = array();
-        return Packet::packFormat($this->guid, "OK", 0, $result);
+        return $result;
     }
 
     //clean up the async list and result
@@ -563,10 +464,8 @@ class RpcClient
 
     private function generateGuid()
     {
-        //to make sure the guid is unique for the async result
-        while (1) {
+        while (true) {
             $guid = md5(microtime(true) . mt_rand(1, 1000000) . mt_rand(1, 1000000));
-            //prevent the guid on the async list
             if (!isset(self::$asynclist[$guid])) {
                 return $guid;
             }

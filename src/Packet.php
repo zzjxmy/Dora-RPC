@@ -16,29 +16,25 @@ class Packet
         return $pack;
     }
 
-    public static function packEncode($data, $type = "tcp")
+    public static function packEncode($data)
     {
 
-        if ($type == "tcp") {
-            $guid = $data["guid"];
-            $sendStr = serialize($data);
+        $guid = $data["guid"];
+        $sendStr = serialize($data);
 
-            //if compress the packet
-            if (RpcConst::SW_DATACOMPRESS_FLAG == true) {
-                $sendStr = gzencode($sendStr, 4);
-            }
-
-            if (RpcConst::SW_DATASIGEN_FLAG == true) {
-                $signedcode = pack('N', crc32($sendStr . RpcConst::SW_DATASIGEN_SALT));
-                $sendStr = pack('N', strlen($sendStr) + 4 + 32) . $signedcode . $guid . $sendStr;
-            } else {
-                $sendStr = pack('N', strlen($sendStr) + 32) . $guid . $sendStr;
-            }
-
-            return $sendStr;
-        } else {
-            return self::packFormat($data["guid"], "packet type wrong", 100006);
+        //if compress the packet
+        if (RpcConst::SW_DATACOMPRESS_FLAG == true) {
+            $sendStr = gzencode($sendStr, 4);
         }
+
+        if (RpcConst::SW_DATASIGEN_FLAG == true) {
+            $signedcode = pack('N', crc32($sendStr . RpcConst::SW_DATASIGEN_SALT));
+            $sendStr = pack('N', strlen($sendStr) + 4 + 32) . $signedcode . $guid . $sendStr;
+        } else {
+            $sendStr = pack('N', strlen($sendStr) + 32) . $guid . $sendStr;
+        }
+
+        return $sendStr;
 
     }
 
