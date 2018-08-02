@@ -62,12 +62,6 @@ class RpcKernel{
     public function getClient($url){
         $group = $this->getKeyByUrl($url);
         if(!isset($this->clients[$group])){
-            if(isset(self::$config['rpc']['server']['config_path'])){
-                $configPath = self::$config['rpc']['server']['config_path'];
-            }else{
-                $configPath = APPLICATION_PATH . '/conf/client.conf.php';
-            }
-            $config = include($configPath);
             $mode = array("type" => RpcConst::MODEL_DEFAULT, "group" => $group);
             $obj = new \DWDRPC\RpcClient($this->getConfig());
             $obj->changeMode($mode);
