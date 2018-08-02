@@ -86,14 +86,13 @@ abstract class RpcServer
                         $key = $config["ip"] . "_" . $config["port"];
                         try {
                             if (!isset($_redisObj[$key])) {
-                                //if not connect
                                 $_redisObj[$key] = new \Redis();
                                 $_redisObj[$key]->connect($config["ip"], $config["port"]);
                                 if(isset($config['isauth']) && $config['isauth']){
                                     $_redisObj[$key]->auth($config['auth']);
                                 }
                             }
-                            //register this server
+                            //注册服务
                             $_redisObj[$key]->sadd("rpc.serverlist", json_encode(array(
                                 "node" => array(
                                     "ip" => $reportServerIP,
@@ -101,7 +100,7 @@ abstract class RpcServer
                                 ),
                                 "group" => $group,
                             )));
-                            //set time out
+                            //设置上报时间，以便超时未上报服务过滤
                             $_redisObj[$key]->set("rpc.servertime." . $reportServerIP . "." . $self->serverPort . ".time", time());
                             echo "【". date('Y-m-d H:i:s') ."】Reported Service Discovery:" . $config["ip"] . ":" . $config["port"] . PHP_EOL;
 
@@ -125,12 +124,10 @@ abstract class RpcServer
      */
     public function start()
     {
-        //config the server config
         $this->tcpserver->set($this->tcpConfig);
         $this->tcpserver->start();
     }
 
-    //application server first start
     final public function onStart(\swoole_server $serv)
     {
         echo "MasterPid={$serv->master_pid}\n";
@@ -138,7 +135,6 @@ abstract class RpcServer
         echo "Server: start.Swoole version is [" . SWOOLE_VERSION . "]\n";
     }
 
-    //application server first start
     final public function onManagerStart(\swoole_server $serv)
     {
     }
@@ -147,7 +143,6 @@ abstract class RpcServer
     {
     }
 
-    //worker and task init
     final public function onWorkerStart(\swoole_server $server, $worker_id)
     {
         $istask = $server->taskworker;
@@ -160,11 +155,9 @@ abstract class RpcServer
 
     abstract public function initTask($server, $worker_id);
 
-    //tcp request process
     final public function onReceive(\swoole_server $serv, $fd, $from_id, $data)
     {
         $requestInfo = Packet::packDecode($data);
-        #decode error
         if ($requestInfo["code"] != 0) {
             $req = Packet::packEncode($requestInfo);
             $serv->send($fd, $req);
@@ -174,9 +167,8 @@ abstract class RpcServer
             $requestInfo = $requestInfo["data"];
         }
 
-        #api was not set will fail
         if (!is_array($requestInfo["api"]) && count($requestInfo["api"])== 0) {
-            $pack = Packet::packFormat($requestInfo["guid"], "param api is empty", 100003);
+            $pack = Packet::packFormat($requestInfo["guid"], "没有请求路由", 100003);
             $pack = Packet::packEncode($pack);
             $serv->send($fd, $pack);
 
@@ -257,7 +249,7 @@ abstract class RpcServer
 
                         break;
                     default:
-                        $pack = Packet::packFormat($guid, "unknow cmd", 100011);
+                        $pack = Packet::packFormat($guid, "未知的命令", 100011);
                         $pack = Packet::packEncode($pack);
 
                         $serv->send($fd, $pack);
@@ -303,7 +295,7 @@ abstract class RpcServer
 
     final public function onTask($serv, $task_id, $from_id, $data)
     {
-        register_shutdown_function([$this, 'handleFatal'], $serv, $data['fd']);
+        register_shutdown_function([$this, 'handleFatal'], $serv, $data);
         try {
             $data["result"] = $this->doWork($serv,$data);
         } catch (\Exception $e) {
@@ -313,12 +305,13 @@ abstract class RpcServer
         return $data;
     }
 
-     public function handleFatal($server, $fd){
+     public function handleFatal($server, $data){
         $error = error_get_last();
-        if($server->exist($fd)){
+        if($server->exist($data['fd'])){
             $data["result"] = $error['message'];
+            $packet = Packet::packFormat($data['guid'], "服务器异常", $error['code'], $data);
             $packet = Packet::packEncode($packet);
-            $server->send($fd, $packet);
+            $server->send($data['fd'], $packet);
         }
         posix_kill(getmypid(), SIGINT);
     }

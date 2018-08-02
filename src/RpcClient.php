@@ -3,37 +3,29 @@ namespace DWDRPC;
 
 include __DIR__. '/Packet.php';
 
-/**
- * Class Client
- * https://github.com/xcl3721/Dora-RPC
- * by 蓝天 http://weibo.com/thinkpc
- */
-
 class RpcClient
 {
 
-    //client obj pool
+    //客户端连接池
     private static $client = array();
 
-    //for the async task list
+    //异步连接列表
     private static $asynclist = array();
 
-    //for the async task result
+    //异步结果列表
     private static $asynresult = array();
 
-    //client config array
+    //连接配置
     private $serverConfig = array();
 
-    //when connect fail will block error config
+    //错误的连接配置
     private $serverConfigBlock = array();
 
-    //this request guid
     private $guid;
 
     //1 随机从指定group名称内选择客户端，2 指定ip进行连接
     private $connectMode = 0;
 
-    //current connect ip port
     private $connectIp = "";
     private $connectPort = 0;
 
@@ -44,8 +36,8 @@ class RpcClient
     public function __construct($serverConfig)
     {
         if (count($serverConfig) == 0) {
-            echo "cant found config on the Dora RPC..";
-            throw new \Exception("please set the config param on init Dora RPC", -1);
+            echo "未找到服务器配置";
+            throw new \Exception("请配置服务器列表", -1);
         }
         $this->serverConfig = $serverConfig;
     }
@@ -53,14 +45,14 @@ class RpcClient
     /**
      * 更换连接模式，用于指定ip请求和普通请求切换
      * @param $param
-     * @throws \Exception unknow mode parameter
+     * @throws \Exception
      */
     public function changeMode($param)
     {
         switch ($param["type"]) {
             case RpcConst::MODEL_DEFAULT:
                 if ($param["group"] == "") {
-                    throw new \Exception("change mode parameter is wrong", -1);
+                    throw new \Exception("连接模式切换，未知的group", -1);
                 }
                 $this->connectMode = RpcConst::MODEL_DEFAULT;
                 $this->connectGroup = $param["group"];
@@ -70,7 +62,7 @@ class RpcClient
                 break;
             case RpcConst::MODEL_APPOINT:
                 if ($param["ip"] == "" || $param["port"] == "") {
-                    throw new \Exception("change mode parameter is wrong", -1);
+                    throw new \Exception("连接模式切换，空的IP OR PORT", -1);
                 }
                 $this->connectMode = RpcConst::MODEL_APPOINT;
                 $this->connectGroup = "default";
@@ -79,7 +71,7 @@ class RpcClient
                 $this->currentClientKey = "";
                 break;
             default:
-                throw new \Exception("change mode parameter is wrong", -1);
+                throw new \Exception("未知的连接模式", -1);
                 break;
         }
     }
@@ -109,7 +101,7 @@ class RpcClient
                 );
                 break;
             default:
-                throw new \Exception("current connect mode is unknow", -1);
+                throw new \Exception("未知的连接模式", -1);
                 break;
         }
     }
@@ -119,13 +111,13 @@ class RpcClient
     {
 
         if (!isset($this->serverConfig[$this->connectGroup])) {
-            throw new \Exception("there is no one server can connect", 100010);
+            throw new \Exception("没有可用服务器", 100010);
         }
-        // if there is no config can use clean up the block list
+        //可用服务器小于错误服务器总数
+        //当前连接服务器在错误连接中 则清空错误服务器列表
         if (isset($this->serverConfigBlock[$this->connectGroup]) &&
             count($this->serverConfig[$this->connectGroup]) <= count($this->serverConfigBlock[$this->connectGroup])
         ) {
-            //clean up the block list
             $this->serverConfigBlock[$this->connectGroup] = array();
         }
 
@@ -138,17 +130,15 @@ class RpcClient
 
         } while (count($this->serverConfig[$this->connectGroup]) > count($this->serverConfigBlock));
 
-        throw new \Exception("there is no one server can connect", 100010);
+        throw new \Exception("没有可用服务器", 100010);
 
     }
 
     //get current client
     private function getClientObj()
     {
-        //config obj key
         $key = "";
 
-        //if not spc will random
         switch ($this->connectMode) {
             case RpcConst::MODEL_DEFAULT:
                 $key = $this->getConfigObjKey();
@@ -159,9 +149,7 @@ class RpcClient
                 $connectPort = $this->serverConfig[$this->connectGroup][$key]["port"];
                 break;
             case RpcConst::MODEL_APPOINT:
-                //using spec
                 $clientKey = trim($this->connectIp) . "_" . trim($this->connectPort);
-                //set the current client key
                 $this->currentClientKey = $clientKey;
                 $connectHost = $this->connectIp;
                 $connectPort = $this->connectPort;
@@ -184,17 +172,15 @@ class RpcClient
             ));
 
             if (!$client->connect($connectHost, $connectPort, RpcConst::SW_RECIVE_TIMEOUT)) {
-                //connect fail
                 $errorCode = $client->errCode;
                 if ($errorCode == 0) {
-                    $msg = "connect fail.check host dns.";
+                    $msg = "连接服务端错误";
                     $errorCode = -1;
                 } else {
                     $msg = \socket_strerror($errorCode);
                 }
 
                 if ($key !== "") {
-                    //put the fail connect config to block list
                     $this->serverConfigBlock[$this->connectGroup][$key] = 1;
                 }
 
@@ -204,7 +190,6 @@ class RpcClient
             self::$client[$clientKey] = $client;
         }
 
-        //success
         return self::$client[$clientKey];
     }
 
@@ -220,14 +205,11 @@ class RpcClient
      * @param  array $param 参数
      * @param  int $mode
      * @param  int $retry 通讯错误时重试次数
-     * @param  string $ip 要连得ip地址，如果不指定从现有配置随机个
-     * @param  string $port 要连得port地址，如果不指定从现有配置找一个
      * @return mixed  返回单个请求结果
      * @throws \Exception unknow mode type
      */
-    public function singleAPI($name, $param, $mode = RpcConst::SW_MODE_WAITRESULT, $retry = 0, $ip = "", $port = "")
+    public function singleAPI($name, $param, $mode = RpcConst::SW_MODE_WAITRESULT, $retry = 0)
     {
-        //get guid
         $this->guid = $this->generateGuid();
 
         $packet = array(
@@ -251,7 +233,7 @@ class RpcClient
                 $packet["type"] = RpcConst::SW_MODE_ASYNCRESULT_SINGLE;
                 break;
             default:
-                throw new \Exception("unknow mode have been set", 100099);
+                throw new \Exception("未知类型", 100099);
                 break;
         }
 
@@ -259,14 +241,13 @@ class RpcClient
 
         $result = $this->doRequest($sendData, $packet["type"]);
 
-        //retry when the send fail
         while ((!isset($result["code"]) || $result["code"] != 0) && $retry > 0) {
             $result = $this->doRequest($sendData, $packet["type"]);
             $retry--;
         }
 
         if ($this->guid != $result["guid"]) {
-            return Packet::packFormat($this->guid, "guid wront please retry..", 100100, $result["data"]);
+            return Packet::packFormat($this->guid, "结果集不匹配", 100100, $result["data"]);
         }
 
         return $result;
@@ -305,7 +286,7 @@ class RpcClient
                 $packet["type"] = RpcConst::SW_MODE_ASYNCRESULT_MULTI;
                 break;
             default:
-                throw new \Exception("unknow mode have been set", 100099);
+                throw new \Exception("未知的类型", 100099);
                 break;
         }
 
@@ -313,14 +294,13 @@ class RpcClient
 
         $result = $this->doRequest($sendData, $packet["type"]);
 
-        //retry when the send fail
         while ((!isset($result["code"]) || $result["code"] != 0) && $retry > 0) {
             $result = $this->doRequest($sendData, $packet["type"]);
             $retry--;
         }
 
         if ($this->guid != $result["guid"]) {
-            return Packet::packFormat($this->guid, "guid wront please retry..", 100100, $result["data"]);
+            return Packet::packFormat($this->guid, "结果集不匹配", 100100, $result["data"]);
         }
 
         return $result;
@@ -329,7 +309,6 @@ class RpcClient
 
     private function doRequest($sendData, $type)
     {
-        //get client obj
         try {
             $client = $this->getClientObj();
         } catch (\Exception $e) {
@@ -343,14 +322,14 @@ class RpcClient
         if (!$ret) {
             $errorcode = $client->errCode;
 
-            //destroy error client obj to make reconncet
+            //关闭连接
             self::$client[$this->currentClientKey]->close(true);
             unset(self::$client[$this->currentClientKey]);
-            // mark the current connection cannot be used, try another channel
+            //数据发送失败，则把服务器放入到错误连接服务器中
             $this->serverConfigBlock[$this->connectGroup][$this->currentClientKey] = 1;
 
             if ($errorcode == 0) {
-                $msg = "connect fail.check host dns.";
+                $msg = "数据发送失败，请重试";
                 $errorcode = -1;
                 $packet = Packet::packFormat($this->guid, $msg, $errorcode);
             } else {
@@ -361,20 +340,16 @@ class RpcClient
             return $packet;
         }
 
-        //if the type is async result will record the guid and client handle
+        //异步结果，将连接放入到异步连接队列中
         if ($type == RpcConst::SW_MODE_ASYNCRESULT_MULTI || $type == RpcConst::SW_MODE_ASYNCRESULT_SINGLE) {
             self::$asynclist[$this->guid] = $client;
         }
 
-        //recive the response
         $data = $this->waitResult($client);
         $data["guid"] = $this->guid;
         return $data;
     }
 
-    //for the loop find the right result
-    //save the async result to the asyncresult static var
-    //return the right guid request
     private function waitResult($client)
     {
         while (true) {
@@ -382,22 +357,17 @@ class RpcClient
 
             if ($result !== false && $result != "") {
                 $data = Packet::packDecode($result);
+                //获取的内容不是当前需要的同步结果，则把当前内容放入异步结果集合中
                 if ($data["data"]["guid"] != $this->guid) {
                     if (isset(self::$asynclist[$data["data"]["guid"]]) && isset($data["data"]["isresult"]) && $data["data"]["isresult"] == 1) {
 
-                        //ok recive an async result
-                        //remove the guid on the asynclist
                         unset(self::$asynclist[$data["data"]["guid"]]);
-
-                        //add result to async result
                         self::$asynresult[$data["data"]["guid"]] = $data["data"];
                         self::$asynresult[$data["data"]["guid"]]["fromwait"] = 1;
                     } else {
-                        //not in the asynclist drop this packet
                         continue;
                     }
                 } else {
-                    //founded right data
                     return $data['data'];
                 }
             } else {
@@ -410,8 +380,6 @@ class RpcClient
 
     public function getAsyncData()
     {
-        //wait all the async result
-        //when  timeout all the error will return
         while (true) {
             if (count(self::$asynclist) > 0) {
                 foreach (self::$asynclist as $k => $client) {
@@ -421,11 +389,7 @@ class RpcClient
                             $data = Packet::packDecode($data);
 
                             if (isset(self::$asynclist[$data["data"]["guid"]]) && isset($data["data"]["isresult"]) && $data["data"]["isresult"] == 1) {
-
-                                //ok recive an async result
-                                //remove the guid on the asynclist
                                 unset(self::$asynclist[$data["data"]["guid"]]);
-
                                 self::$asynresult[$data["data"]["guid"]] = $data["data"];
                                 self::$asynresult[$data["data"]["guid"]]["fromwait"] = 0;
                                 continue;
@@ -433,18 +397,16 @@ class RpcClient
                                 continue;
                             }
                         } else {
-                            //remove the result
                             unset(self::$asynclist[$k]);
-                            self::$asynresult[$k] = Packet::packFormat($this->guid, "the recive wrong or timeout", 100009);
+                            self::$asynresult[$k] = Packet::packFormat($this->guid, "获取异步结果失败：数据获取超时", 100009);
                             continue;
                         }
                     } else {
-                        //remove the result
                         unset(self::$asynclist[$k]);
-                        self::$asynresult[$k] = Packet::packFormat($this->guid, "Get Async Result Fail: Client Closed.", 100012);
+                        self::$asynresult[$k] = Packet::packFormat($this->guid, "获取异步结果失败: 连接已经关闭.", 100012);
                         continue;
                     }
-                } // foreach the list
+                }
             } else {
                 break;
             }
@@ -455,7 +417,6 @@ class RpcClient
         return $result;
     }
 
-    //clean up the async list and result
     public function clearAsyncData()
     {
         self::$asynresult = array();

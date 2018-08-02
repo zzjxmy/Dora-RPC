@@ -4,7 +4,7 @@ namespace DWDRPC;
 class Packet
 {
 
-    public static function packFormat($guid, $msg = "OK", $code = 0, $data = array())
+    public static function packFormat($guid, $msg = "OK", $code = 0, $data = null)
     {
         $pack = array(
             "guid" => $guid,
