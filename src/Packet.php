@@ -1,6 +1,8 @@
 <?php
 namespace DWDRPC;
 
+include_once __DIR__ .'/RpcConst.php';
+
 class Packet
 {
 

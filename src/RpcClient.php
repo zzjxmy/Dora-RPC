@@ -1,7 +1,7 @@
 <?php
 namespace DWDRPC;
 
-include __DIR__. '/Packet.php';
+include_once __DIR__. '/Packet.php';
 
 class RpcClient
 {

@@ -16,7 +16,6 @@ class RpcMonitor
         $self = $this;
 
         $this->_server->addProcess(new \swoole_process(function () use ($config, $self) {
-//            swoole_set_process_name("dora: monitor service");
             static $_redisObj = array();
 
             while (true) {
