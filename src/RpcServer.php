@@ -308,8 +308,7 @@ abstract class RpcServer
      public function handleFatal($server, $data){
         $error = error_get_last();
         if($server->exist($data['fd'])){
-            $data["result"] = $error['message'];
-            $packet = Packet::packFormat($data['guid'], "服务器异常", $error['code'], $data);
+            $packet = Packet::packFormat($data['guid'], "服务器异常", $error['code'], json_encode($error));
             $packet = Packet::packEncode($packet);
             $server->send($data['fd'], $packet);
         }
