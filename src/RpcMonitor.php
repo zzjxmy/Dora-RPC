@@ -35,6 +35,9 @@ class RpcMonitor
                                 //if not connect
                                 $_redisObj[$key] = new \Redis();
                                 $_redisObj[$key]->connect($redisItem["ip"], $redisItem["port"]);
+                                if(isset($redisItem['isauth']) && $redisItem['isauth']){
+                                    $_redisObj[$key]->auth($redisItem['auth']);
+                                }
                             }
 
                             //get register node server

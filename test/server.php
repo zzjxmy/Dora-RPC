@@ -10,7 +10,7 @@ class APIServer extends \DWDRPC\RpcServer
         //such as swoole atomic table or buffer 可以放置swoole的计数器，table等
     }
 
-    function doWork($param)
+    function doWork($server,$param)
     {
         //process you logical 业务实际处理代码仍这里
         return array("hehe" => "ohyes123");
